@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic Light Detection</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d0f14;
+    --surface:  #151820;
+    --border:   #1e2330;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+    --green:    #22c55e;
+    --blue:     #3b82f6;
+    --radius:   12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-lights {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .dot.y { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .dot.g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  header p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge {
+    margin-left: auto;
+    background: #1e2330;
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Main layout ── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 24px;
+    gap: 24px;
+  }
+
+  /* ── Upload panel ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* Drop zone */
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  #dropzone:hover, #dropzone.drag-over {
+    border-color: var(--blue);
+    background: rgba(59,130,246,0.04);
+  }
+  #dropzone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 36px; margin-bottom: 12px; }
+  #dropzone p  { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  #dropzone strong { color: var(--text); }
+
+  /* Preview */
+  #preview-wrap { margin-top: 16px; display: none; }
+  #preview-img  {
+    width: 100%; border-radius: 8px;
+    border: 1px solid var(--border);
+    max-height: 220px; object-fit: contain;
+    background: #0a0c10;
+  }
+  .file-name {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Detect button */
+  #detect-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: none;
+  }
+  #detect-btn:hover  { opacity: 0.88; }
+  #detect-btn:active { transform: scale(0.98); }
+  #detect-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Supported formats */
+  .formats {
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── Result panel ── */
+  .result-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Advisory card */
+  #advisory-card {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 24px 28px;
+    display: none;
+    align-items: center;
+    gap: 20px;
+    transition: border-color 0.3s;
+  }
+  .advisory-emoji { font-size: 48px; line-height: 1; }
+  .advisory-label {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .advisory-msg {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .advisory-count {
+    margin-left: auto;
+    text-align: right;
+  }
+  .advisory-count .num { font-size: 28px; font-weight: 700; }
+  .advisory-count .lbl { font-size: 11px; color: var(--muted); }
+
+  /* Result image */
+  #result-wrap { display: none; }
+  #result-img  {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    max-height: 420px;
+    object-fit: contain;
+    background: #0a0c10;
+  }
+
+  /* Detections table */
+  #detections-wrap { display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .pill.red    { background: rgba(239,68,68,0.15);  color: #f87171; }
+  .pill.yellow { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .pill.green  { background: rgba(34,197,94,0.15);  color: #4ade80; }
+  .pill.off    { background: rgba(100,116,139,0.15);color: #94a3b8; }
+
+  /* Empty / loading states */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    gap: 12px;
+  }
+  .empty-state .icon { font-size: 48px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; }
+
+  #loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #error-msg {
+    display: none;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #f87171;
+  }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-lights">
+    <div class="dot r"></div>
+    <div class="dot y"></div>
+    <div class="dot g"></div>
+  </div>
+  <div>
+    <h1>Traffic Light Detection</h1>
+    <p>YOLOv8 + PyTorch — vehicle advisory system</p>
+  </div>
+  <span class="badge">v1.0</span>
+</header>
+
+<main>
+  <!-- LEFT: Upload -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">Upload Image</div>
+
+      <div id="dropzone">
+        <input type="file" id="file-input" accept="image/*">
+        <div class="upload-icon">📷</div>
+        <p><strong>Click to upload</strong> or drag & drop<br>your traffic light image here</p>
+      </div>
+
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="Preview">
+        <div class="file-name" id="file-name"></div>
+      </div>
+
+      <button id="detect-btn">Detect Traffic Light</button>
+
+      <div class="formats">Supports JPG · PNG · WEBP · BMP</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="result-area">
+
+    <div id="empty-state" class="empty-state">
+      <div class="icon">🚦</div>
+      <p>Upload an image to see<br>the detection result</p>
+    </div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      Analysing image...
+    </div>
+
+    <div id="error-msg"></div>
+
+    <!-- Advisory banner -->
+    <div id="advisory-card">
+      <div class="advisory-emoji" id="adv-emoji"></div>
+      <div>
+        <div class="advisory-label" id="adv-label"></div>
+        <div class="advisory-msg"   id="adv-msg"></div>
+      </div>
+      <div class="advisory-count">
+        <div class="num" id="adv-count"></div>
+        <div class="lbl">light(s) found</div>
+      </div>
+    </div>
+
+    <!-- Annotated image -->
+    <div id="result-wrap">
+      <div class="panel-title" style="padding:0 0 10px 0">Annotated Result</div>
+      <img id="result-img" src="" alt="Detection result">
+    </div>
+
+    <!-- Detections table -->
+    <div id="detections-wrap" class="panel">
+      <div class="panel-title">Detections</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>State</th>
+            <th>Confidence</th>
+            <th>Bounding Box</th>
+          </tr>
+        </thead>
+        <tbody id="det-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const fileInput   = document.getElementById('file-input');
+  const dropzone    = document.getElementById('dropzone');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewImg  = document.getElementById('preview-img');
+  const fileName    = document.getElementById('file-name');
+  const detectBtn   = document.getElementById('detect-btn');
+  const emptyState  = document.getElementById('empty-state');
+  const loading     = document.getElementById('loading');
+  const errorMsg    = document.getElementById('error-msg');
+
+  const advCard   = document.getElementById('advisory-card');
+  const advEmoji  = document.getElementById('adv-emoji');
+  const advLabel  = document.getElementById('adv-label');
+  const advMsg    = document.getElementById('adv-msg');
+  const advCount  = document.getElementById('adv-count');
+
+  const resultWrap = document.getElementById('result-wrap');
+  const resultImg  = document.getElementById('result-img');
+  const detWrap    = document.getElementById('detections-wrap');
+  const detTbody   = document.getElementById('det-tbody');
+
+  let selectedFile = null;
+
+  // Drag & drop
+  dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', ()  => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadPreview(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadPreview(fileInput.files[0]);
+  });
+
+  function loadPreview(file) {
+    selectedFile = file;
+    const url = URL.createObjectURL(file);
+    previewImg.src  = url;
+    fileName.textContent = file.name;
+    previewWrap.style.display = 'block';
+    detectBtn.style.display   = 'block';
+    hideResults();
+  }
+
+  detectBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    detectBtn.disabled = true;
+    detectBtn.textContent = 'Analysing...';
+    emptyState.style.display = 'none';
+    loading.style.display    = 'flex';
+    errorMsg.style.display   = 'none';
+    advCard.style.display     = 'none';
+    resultWrap.style.display  = 'none';
+    detWrap.style.display     = 'none';
+
+    const form = new FormData();
+    form.append('image', selectedFile);
+
+    try {
+      const res  = await fetch('/detect', { method: 'POST', body: form });
+      const data = await res.json();
+
+      loading.style.display = 'none';
+
+      if (data.error) {
+        errorMsg.textContent   = '⚠️  ' + data.error;
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      showResults(data);
+
+    } catch (err) {
+      loading.style.display  = 'none';
+      errorMsg.textContent   = '⚠️  Connection error. Is the server running?';
+      errorMsg.style.display = 'block';
+    } finally {
+      detectBtn.disabled    = false;
+      detectBtn.textContent = 'Detect Traffic Light';
+    }
+  });
+
+  function showResults(data) {
+    const a = data.advisory;
+
+    // Advisory banner
+    advCard.style.display  = 'flex';
+    advCard.style.borderColor = a.color + '55';
+    advCard.style.background  = a.color + '0d';
+    advEmoji.textContent   = a.emoji;
+    advLabel.textContent   = a.label;
+    advLabel.style.color   = a.color;
+    advMsg.textContent     = a.message;
+    advCount.textContent   = data.count;
+
+    // Annotated image
+    resultImg.src = 'data:image/jpeg;base64,' + data.image_b64;
+    resultWrap.style.display = 'block';
+
+    // Detections table
+    if (data.detections.length > 0) {
+      detTbody.innerHTML = data.detections.map((d, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td><span class="pill ${d.label}">${d.label}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace">${Math.round(d.conf*100)}%</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+            (${d.x1}, ${d.y1}) → (${d.x2}, ${d.y2})
+          </td>
+        </tr>
+      `).join('');
+      detWrap.style.display = 'block';
+    }
+  }
+
+  function hideResults() {
+    emptyState.style.display  = 'none';
+    advCard.style.display     = 'none';
+    resultWrap.style.display  = 'none';
+    detWrap.style.display     = 'none';
+    errorMsg.style.display    = 'none';
+  }
+</script>
+</body>
+</html>
