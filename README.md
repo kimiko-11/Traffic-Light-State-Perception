@@ -14,6 +14,7 @@ traffic_light_detection/
 └── models/
     └── best.pt             ← Place trained weights here
 ```
+after forking and cloning the repo
 # 1. Create virtual environment
 python -m venv venv
 
