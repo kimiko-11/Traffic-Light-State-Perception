@@ -1,7 +1,13 @@
-#  Traffic Light Detection System
-**YOLOv8 + PyTorch** — Real-time vehicle advisory (STOP / WAIT / GO)
+🚦 Traffic Light State Perception
+Real-Time Traffic Signal Detection & State Classification using YOLOv8
 
----
+A real-time computer vision system that detects traffic lights and classifies their current state as RED, YELLOW, or GREEN, converting visual perception into simple vehicle advisories:
+
+RED → STOP
+YELLOW → WAIT
+GREEN → GO
+
+The system uses YOLOv8s with transfer learning and a custom annotated traffic-light dataset to perform real-time traffic signal perception
 
 ## Project Structure
 
