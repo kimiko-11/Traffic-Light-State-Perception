@@ -1,4 +1,4 @@
-#🚦 Traffic Light State Perception
+# 🚦 Traffic Light State Perception
 Real-Time Traffic Signal Detection & State Classification using YOLOv8
 
 A real-time computer vision system that detects traffic lights and classifies their current state as RED, YELLOW, or GREEN, converting visual perception into simple vehicle advisories:
